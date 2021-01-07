@@ -247,7 +247,6 @@ sudo systemctl enable vncserver@:2
 sudo systemctl set-default graphical
 ```
 
-
 ## Windows Steps
 
 ### Install Windows DB2 Client
@@ -258,6 +257,12 @@ sudo systemctl set-default graphical
 * expand the software zip file
 * expand in software tree to find "setup.exe" and double click
 * find "Install Data Server Client".  follow prompts to install
+
+### Install IBM Data Studio
+* On Windows machine, download IBM Data Studio client software [Download Data Studio](https://mrs-ux.mrs-prod-7d4bdc08e7ddc90fa89b373d95c240eb-0000.us-south.containers.appdomain.cloud/marketing/iwm/platform/mrs/assets/DownloadList?source=swg-idside&lang=en_US)
+* Click on download link for Windows
+* After download completes, expand the zip file
+* Within the ibm_ds4130_win foldor, Double-click the launchpad.exe and follow the prompts to install
 
 ### SCT
 Return back to the DMS and SCT steps using the SQL Server to Amazon Aurora PostgreSQL
@@ -274,13 +279,44 @@ Return back to the DMS and SCT steps using the SQL Server to Amazon Aurora Postg
     * Click "Finish"
 * Right click on the "DB2INST1" database in the left panel and select Convert Schema to generate the data definition language (DDL) statements for the target database.
 * Right click on the db2inst1 schema in the right-hand panel, and click Apply to database. click Yes
+* Can see the tables now in the target database.  Use the pg4admin tool to verify the new schema exists but is not populated.
 
 ### Troubleshooting Windows
 * if can't connect through ports
     * Disable Windows Defender [Disable Defender](https://support.microsoft.com/en-us/windows/turn-microsoft-defender-firewall-on-or-off-ec0844f7-aebd-0583-67fe-601ecf5d774f)
     * Restart the windows machine (yep, it is not 1995 but restarting a windows machine never hurts!)
-    
-    
+ 
+## DB2 with DMS
+Several links for background on changes needed for DB2 setup with DMS
+
+* Link for using IBM DB2 as a source for DMS [DB2 DMS](https://docs.aws.amazon.com/dms/latest/userguide/CHAP_Source.DB2.html) 
+* Link for changing logarchmeth1 on db2 11.5 [Turn on Log](https://www.ibm.com/support/knowledgecenter/SSEPGG_11.5.0/com.ibm.db2.luw.admin.config.doc/doc/r0011448.html)
+* Link to change Configuration Parameters.  [Configuration Parameter Change](https://www.ibm.com/support/knowledgecenter/en/SSEPGG_11.5.0/com.ibm.db2.luw.admin.config.doc/doc/t0005243.html)
+* NOTE:  LOGARCHMETH1 and LOGARCHMETH2 are for newer versions of DB2.  Older versions use LOGRETAIN
+
+### DB2 Prep
+Choose most comfortable method for making the configuration parameter.  Following steps are using a command line unix connection
+
+* Turn on replication from unix connection to the redhat Db2 instance
+
+```bash
+su - db2inst1
+db2 connect to sample
+# check to see if replication is already turned on
+db2 get dbm cfg | grep LOGARCHMETH
+# turn replication on
+db2 update db cfg for sample using logarchmeth1 logretain
+# databasse must be deactivated and reactivated.  THis is the easiest method but less aggressive methods may also work
+db2stop 
+# if this does not work and this message appears "SQL1025N  The database manager was not stopped because databases are still active."
+db2stop force
+# restart
+db2start
+# backup must be taken once logretain is enabled or following error will be returned "SQL1116N A connection to or activation of the database cannot be made because of BACKUP PENDING."
+db2 backup database sample
+```
+* drop the foreign key constraint from the target database
+
 ### Cleaning up
 
 Remove all files from S3 to avoid accruing unnecessary charges
