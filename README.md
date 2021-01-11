@@ -4,6 +4,9 @@
 
 Demo converting DB2 database to postgresql using DB2 on an EC2 instance with SCT and DMS.
 
+Cavaet:   I worked through the entire process using IBM DB2 v11.5 and everything works until the very last step to move the data with DMS.  This step fails to find the DB2 tables and no data is moved.
+DB2 11.5 is not supported by DMS and there is not an ETA for that support.  Free trial downloads of earlier DB2 version are not available. 
+
 &nbsp;
 
 ## Outline
@@ -93,11 +96,11 @@ To login from client to redhat instance
 ```bash
 ssh -i keypairFile ec2-user@redhatIPaddress
 ```
-* Install needed packages to redhat instance
+* Install needed packages to redhat instance- NOTE:  git is not needed for VNC but needed for later
 ```bash
 sudo yum groupinstall 'Server with GUI'
 sudo yum install pixman pixman-devel
-sudo yum -y install tigervnc-server
+sudo yum -y install tigervnc-server git
 ``` 
 * change ssd to allow password login with ssh
 ```bash
@@ -264,6 +267,17 @@ sudo systemctl set-default graphical
 * After download completes, expand the zip file
 * Within the ibm_ds4130_win foldor, Double-click the launchpad.exe and follow the prompts to install
 
+### Install git
+Git is needed to pull this repository onto the windows machine.  The repository has some needed scripts.
+* Got to the git site [git download](https://git-scm.com/) 
+* Download the latest git release for windows
+* Double-click on the git exe file and follow the prompts to install
+* clone the git project using a windows DOC command line
+```bash
+cd "Desktop\DMS Workshop"
+git clone https://github.com/jphaugla/awsDB2ToAuroraPostgres.git
+```
+
 ### SCT
 Return back to the DMS and SCT steps using the SQL Server to Amazon Aurora PostgreSQL
 
@@ -294,7 +308,7 @@ Several links for background on changes needed for DB2 setup with DMS
 * Link to change Configuration Parameters.  [Configuration Parameter Change](https://www.ibm.com/support/knowledgecenter/en/SSEPGG_11.5.0/com.ibm.db2.luw.admin.config.doc/doc/t0005243.html)
 * NOTE:  LOGARCHMETH1 and LOGARCHMETH2 are for newer versions of DB2.  Older versions use LOGRETAIN
 
-### DB2 Prep
+### DB2 Replication
 Choose most comfortable method for making the configuration parameter.  Following steps are using a command line unix connection
 
 * Turn on replication from unix connection to the redhat Db2 instance
@@ -315,7 +329,27 @@ db2start
 # backup must be taken once logretain is enabled or following error will be returned "SQL1116N A connection to or activation of the database cannot be made because of BACKUP PENDING."
 db2 backup database sample
 ```
-* drop the foreign key constraint from the target database
+
+### DB2 Drop Foreign Keys
+Open the pgadmin tool by clicking on the elephant icon on the bottom of the windows server
+This is very similar to the immersion day Configure the Target DataBase step [Configure Target](https://dms-immersionday.workshop.aws/en/sqlserver-aurora-postgres/data-migration/config-target/config-target.html) but using the drop_constraints from the git repo
+
+* Using the tree structure on the left, find the AuroraDB database and then the db2inst1 schema and click on the schema
+* Use Tools->Query Tool to open the query tool
+* click on the "open folder" icons on far left of the icons for pagamin query tool and open the drop_constraints script
+    * the script is at C:\Users\Administrator\Desktop\DMS Workshop\awsDB2ToAuroraPostgres\scripts\drop_constraints.sql
+
+### Create DMS Source and Target Endpoints
+
+* Create DMS Replication Instance following Steps from [Link](https://dms-immersionday.workshop.aws/en/sqlserver-aurora-postgres/data-migration/replication-instance/replication-instance.html)
+* Create DMS Source and Target Endpoints [Steps](https://dms-immersionday.workshop.aws/en/sqlserver-aurora-postgres/data-migration/endpoints/endpoints.html) steps but use these parameters for the source ![source parameters](README_PHOTOS/SourceDatabase.jpg)
+* Create a DMS Migration Task [DMS Replication Task](https://dms-immersionday.workshop.aws/en/sqlserver-aurora-postgres/data-migration/migration-task/migration-task.html)
+    * substitute correct names and use schema name of "DB2INST"
+    * I needed to restart this task multiple times before it works and it eventually errors out because 11.5 is not supported
+    * this is the error:
+```bash
+2021-01-08T01:36:14 [TASK_MANAGER ]E: No tables were found at task initialization. Either the selected table(s) no longer exist or no match was found for the table selection pattern(s). [1021707] (replicationtask.c:2107)
+```
 
 ### Cleaning up
 
