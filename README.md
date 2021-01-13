@@ -4,8 +4,6 @@
 
 Demo converting DB2 database to postgresql using DB2 on an EC2 instance with SCT and DMS.
 
-Cavaet:   I worked through the entire process using IBM DB2 v11.5 and everything works until the very last step to move the data with DMS.  This step fails to find the DB2 tables and no data is moved.
-DB2 11.5 is not supported by DMS and there is not an ETA for that support.  Free trial downloads of earlier DB2 version are not available. 
 
 &nbsp;
 
@@ -48,7 +46,7 @@ Use CloudFormation template from [Data Migration Immersion Day](https://dms-imme
 
 ## Technical Overview
 
-* Bring up DMS/SCT environment using immersion days template
+* Bring up DMS/SCT environment using modified immersion days template
 * Review Security Group Settings
 * Setup VNC viewer on redhat instance.  VNC Viewer is needed for IBM DB2 installation
 * Install DB2 and create sample DB2 database
@@ -62,7 +60,11 @@ Use CloudFormation template from [Data Migration Immersion Day](https://dms-imme
 
 ## Instructions
 
-***IMPORTANT NOTE**: Creating this demo application in your AWS account will create and consume AWS resources, which **will cost money**.  Costing information is available at [AWS Transcribe Pricing](https://aws.amazon.com/transcribe/pricing/?nc=sn&loc=3)
+***IMPORTANT NOTE**: Creating this demo application in your AWS account will create and consume AWS resources, which **will cost money**.  Costing information is available at [AWS DMS Pricing](https://aws.amazon.com/dms/pricing/)   The template will cost money for the other resources as well.
+
+**ADDITIONAL NOTE**: Latest IBM DB2 version supported as of January 2021 is 11.1 with all Fix Packs.  I worked through the entire process using IBM DB2 v11.5 and everything works until the very last step to move the data with DMS.  This step fails to find the DB2 tables and no data is moved.
+DB2 11.5 is not supported by DMS and there is not an ETA for that support.  Free trial downloads of earlier DB2 version are not available. 
+I successfully used DB2 11.1 FixPack 5 for this exercise.  I am unclear on usage limitation with this downloadable content so use this at your own discression.
 
 &nbsp;
 
@@ -90,7 +92,8 @@ Additional ports need to be open to allow VNC connectivity to the redhat 8 insta
     * Click "save rules"
 
 ### Setup VNC
-VNC is needed to do the IBM install on the redhat instance.
+VNC is needed to do the IBM install on the redhat instance.  I have provided a response file in this github at ![db2 install response file](db2server.rsp)
+This could eliminate the need for VNC.  Additionally, there is db2_install script which may work without VNC.  I have not verified either of these approaches so these instructions require VNC setup.
 
 To login from client to redhat instance
 ```bash
@@ -183,10 +186,10 @@ Jan 05 02:37:52 xxxxx.ec2.internal systemd[1]: Started Remote desktop service (V
 
 ### Install DB2
 
-DB2 needs VNC to do the install.  There is also a silent option not needing vnc with a response file
+DB2 needs VNC to do the install.  There is also a silent option not needing vnc with a response file.  This may be best path forward.  THe response file is saved in the github
 
-* Using the VNC connection to the IBM server, go to download page for DB2 software [free DB2 software](https://www.ibm.com/analytics/db2/trials)
-* Scroll down to "Download for free" button and fill out IBMID information (it is free)  
+* Using the VNC connection to the IBM server, go to download page for DB2 software [DB2 software](https://www.ibm.com/support/pages/download-db2-fix-packs-version-db2-linux-unix-and-windows)
+* Scroll down to "DB2 Fix Packs" button and fill out IBMID information (it is free) 
 * Some errors on missing 32bit libraries will be generated but IBM says to ignore those error.  Easiest to install them ahead of time!
 ```bash
 sudo bash
@@ -194,6 +197,7 @@ yum install libstdc++.i686
 yum install pam.i686
 yum install gcc-c++ cpp gcc kernel-devel make patch
 ```
+* Click on the version you want.  At the time of this writing, db2 11.1 fixpack 5 is most recent version supported by AWS DBS 
 * create holding file for DB2 Software (not necessary but makes later documentation easier)
 ```bash
 sudo bash
@@ -202,14 +206,13 @@ mkdir software
 chmod 777 software
 exit
 ```
-    * Download using Linux (x64), move the file to the /home/software and decompress the file using tar -xvzf 
-    * rename directory so what was the server_dec directory becomes ibm-db2
+* Download using Linux (x64), move the file to the /home/software and decompress the file using tar -xvzf 
+* rename directory so what was the server_dec directory becomes ibm-db2
 * Do a root based install using ./db2setup 
-* validate the licence and run a db2 install validation
+* db2 validation
 ```bash
 sudo bash
 su - db2inst1
-db2licm -a /home/software/ibm-db2/license/db2trial.lic
 db2val
 ```
 
@@ -316,11 +319,9 @@ Choose most comfortable method for making the configuration parameter.  Followin
 ```bash
 su - db2inst1
 db2 connect to sample
-# check to see if replication is already turned on
-db2 get dbm cfg | grep LOGARCHMETH
 # turn replication on
 db2 update db cfg for sample using logarchmeth1 logretain
-# databasse must be deactivated and reactivated.  THis is the easiest method but less aggressive methods may also work
+# database must be deactivated and reactivated.  THis is the easiest method but less aggressive methods may also work
 db2stop 
 # if this does not work and this message appears "SQL1025N  The database manager was not stopped because databases are still active."
 db2stop force
@@ -344,9 +345,16 @@ This is very similar to the immersion day Configure the Target DataBase step [Co
 * Create DMS Replication Instance following Steps from [Link](https://dms-immersionday.workshop.aws/en/sqlserver-aurora-postgres/data-migration/replication-instance/replication-instance.html)
 * Create DMS Source and Target Endpoints [Steps](https://dms-immersionday.workshop.aws/en/sqlserver-aurora-postgres/data-migration/endpoints/endpoints.html) steps but use these parameters for the source ![source parameters](README_PHOTOS/SourceDatabase.jpg)
 * Create a DMS Migration Task [DMS Replication Task](https://dms-immersionday.workshop.aws/en/sqlserver-aurora-postgres/data-migration/migration-task/migration-task.html)
-    * substitute correct names and use schema name of "DB2INST"
-    * I needed to restart this task multiple times before it works and it eventually errors out because 11.5 is not supported
-    * this is the error:
+    * add a selection rule where schema name is like "DB2INST"
+    * DB2 uses upper case schema, table, and column names so these must all be converted in mapping rules
+        * add 3 separate mapping rules for columns, tables and schema
+```bash
+where schema name is like '%' and table name is like '%', convert-lowercase
+where schema name is like '%' and table name is like '%', convert-lowercase
+where schema name is like '%'  convert-lowercase
+```
+* Still not getting any DB2 table with a clob to successfully transfer-have not debugged that at this time
+    * This is the error if 11.5 is used
 ```bash
 2021-01-08T01:36:14 [TASK_MANAGER ]E: No tables were found at task initialization. Either the selected table(s) no longer exist or no match was found for the table selection pattern(s). [1021707] (replicationtask.c:2107)
 ```
