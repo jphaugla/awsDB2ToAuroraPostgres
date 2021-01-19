@@ -843,3 +843,17 @@ Outputs:
       Fn::GetAtt:
       - TargetOracleDB
       - Endpoint.Address
+  TargetKinesisEndpoint:
+    Condition: Create-SQLServer-to-AuroraPostgreSQL-Environment
+    Description: Target Kinesis Endpoint
+    Value:
+      Fn::GetAtt:
+      - testkinesisstream
+      - Arn
+  TargetKinesisRole:
+    Condition: Create-SQLServer-to-AuroraPostgreSQL-Environment
+    Description: Target Kinesis Role
+    Value:
+      Fn::GetAtt:
+      - DMSExecutionRole
+      - Arn
