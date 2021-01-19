@@ -755,6 +755,38 @@ Resources:
         - "-"
         - - Ref: AWS::StackName
           - TargetOracleDB
+  testkinesisstream:
+    Type: 'AWS::Kinesis::Stream'
+    Properties:
+      Name: testkinesisstream
+      ShardCount: 1
+      
+  DMSExecutionRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - dms.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Path: /
+      Policies:
+        - PolicyName: DMSservicerole
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action: 
+                  - 'kinesis:DescribeStream'
+                  - 'kinesis:PutRecord'
+                  - 'kinesis:PutRecords'
+                Resource: !GetAtt
+                  - testkinesisstream
+                  - Arn
 
 Outputs:
   SourceEC2PublicDNS:
