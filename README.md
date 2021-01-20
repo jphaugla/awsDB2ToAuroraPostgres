@@ -55,7 +55,7 @@ Use CloudFormation template from [Data Migration Immersion Day](https://dms-imme
 * Review Security Group Settings
 * Setup VNC viewer on redhat instance.  VNC Viewer is needed for IBM DB2 installation
 * Install DB2 and create sample DB2 database
-* Convert sample DB2 database to Aurora PostgreSQL
+* Use SCT and DMS to convert sample DB2 database to Aurora PostgreSQL
 
 &nbsp;
 
@@ -97,7 +97,7 @@ Additional ports need to be open to allow VNC connectivity to the redhat 8 insta
     * Click "save rules"
 
 ### Setup VNC
-VNC is needed to do the IBM install on the redhat instance.  I have provided a response file in this github at ![db2 install response file](db2server.rsp)
+VNC is needed to do the IBM install on the redhat instance.  I have provided a response file in this github at [db2 install response file](https://github.com/jphaugla/awsDB2ToAuroraPostgres/blob/main/db2server.rsp)
 This could eliminate the need for VNC.  Additionally, there is db2_install script which may work without VNC.  I have not verified either of these approaches so these instructions require VNC setup.
 
 To login from client to redhat instance
@@ -277,7 +277,7 @@ sudo systemctl set-default graphical
 
 ### Install git
 Git is needed to pull this repository onto the windows machine.  The repository has some needed scripts.
-* Got to the git site [git download](https://git-scm.com/) 
+* Got to the [git download](https://git-scm.com/) 
 * Download the latest git release for windows
 * Double-click on the git exe file and follow the prompts to install
 * clone the git project using a windows DOC command line
@@ -289,7 +289,7 @@ git clone https://github.com/jphaugla/awsDB2ToAuroraPostgres.git
 ### SCT
 Return back to the DMS and SCT steps using the SQL Server to Amazon Aurora PostgreSQL
 
-* Start back at this point in the guide [guide](https://dms-immersionday.workshop.aws/en/sqlserver-aurora-postgres.html)
+* Start back at this point in the [guide](https://dms-immersionday.workshop.aws/en/sqlserver-aurora-postgres.html)
 * Perform the following Part 1 Schema Conversion Steps: "Connect to the EC2 Instance", "Install the AWS Schema Conversion Tool (AWS SCT)"
 * Restart the Windows Server (this seems to be important after the SCT install)
 * Create a New Project using New Project Wizard ![Create Project](README_PHOTOS/DefineProject.jpg)
@@ -347,10 +347,10 @@ This is very similar to the immersion day Configure the Target DataBase step [Co
 
 ### Create DMS Resources
 
-* Create DMS Replication Instance following Steps from [Link](https://dms-immersionday.workshop.aws/en/sqlserver-aurora-postgres/data-migration/replication-instance/replication-instance.html)
+* Create DMS Replication Instance following Steps from [immersion training](https://dms-immersionday.workshop.aws/en/sqlserver-aurora-postgres/data-migration/replication-instance/replication-instance.html)
 * Create DMS Source and Target Endpoints [Steps](https://dms-immersionday.workshop.aws/en/sqlserver-aurora-postgres/data-migration/endpoints/endpoints.html) steps but use these parameters for the source ![source parameters](README_PHOTOS/SourceDatabase.jpg)
-* Create a DMS Migration Task [DMS Replication Task](https://dms-immersionday.workshop.aws/en/sqlserver-aurora-postgres/data-migration/migration-task/migration-task.html)
-    * add a selection rule where schema name is like "DB2INST"
+* Create a [DMS Replication Task](https://dms-immersionday.workshop.aws/en/sqlserver-aurora-postgres/data-migration/migration-task/migration-task.html)
+    * add a selection rule where schema name is like "DB2INS%"
     * DB2 uses upper case schema, table, and column names so these must all be converted in mapping rules
         * add 3 separate mapping rules for columns, tables and schema
 ```bash
