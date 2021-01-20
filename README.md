@@ -2,7 +2,8 @@
 
 ## Purpose
 
-Demo converting DB2 database to postgresql using DB2 on an EC2 instance with SCT and DMS.
+Demo converting DB2 database to postgresql using DB2 on an EC2 instance with SCT and DMS.  Additional option to use Kinesis in between DMS and Aurora.
+
 
 
 &nbsp;
@@ -346,6 +347,8 @@ This is very similar to the immersion day Configure the Target DataBase step [Co
     * the script is at C:\Users\Administrator\Desktop\DMS Workshop\awsDB2ToAuroraPostgres\scripts\drop_constraints.sql
 
 ### Create DMS Resources
+
+Some choices here.  In addition can add a separate Migration Task for using the same DB2 source tables but the target endpoint is Kinesis.  In this scenario, there are no mapping rules but a separate Kinesis stream is needed for each table.  The streams are defined in the cloud formation template as well.
 
 * Create DMS Replication Instance following Steps from [immersion training](https://dms-immersionday.workshop.aws/en/sqlserver-aurora-postgres/data-migration/replication-instance/replication-instance.html)
 * Create DMS Source and Target Endpoints [Steps](https://dms-immersionday.workshop.aws/en/sqlserver-aurora-postgres/data-migration/endpoints/endpoints.html) steps but use these parameters for the source ![source parameters](README_PHOTOS/SourceDatabase.jpg)
