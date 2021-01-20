@@ -14,7 +14,6 @@ Demo converting DB2 database to postgresql using DB2 on an EC2 instance with SCT
 - [Technical Overview](#technical-overview)
 - [Instructions](#instructions)
   - [Create Environment](#create-environment)
-  - [Add DB2 EC2 instance](#add-db2-ec2-instance)
   - [Edit Security Group Settings](#edit-security-group-settings)
   - [Setup VNC](#setup-vnc)
   - [Troubleshoot VNC](#troubleshoot-vnc)
@@ -25,8 +24,14 @@ Demo converting DB2 database to postgresql using DB2 on an EC2 instance with SCT
   - [Setup VNC for db2inst1](#setup-vnc-for-db2inst1)
 - [Windows Steps](#windows-steps)
   - [Install Windows DB2 Client](#install-windows-db2-client)
+  - [Install IBM Data Studio](#install-ibm-data-studio)
+  - [Install git](#install-git)
   - [SCT](#sct)
   - [Troubleshooting Windows](#troubleshooting-windows)
+- [DB2 with DMS](#db2-with-dms)
+  - [DB2 Replication](#db2-replication)
+  - [DB2 Drop Foreign Keys](#db2-drop-foreign-keys)
+  - [Create DMS Resources](#create-dms-resources)
 - [Cleaning up](#cleaning-up)
   
 
@@ -340,7 +345,7 @@ This is very similar to the immersion day Configure the Target DataBase step [Co
 * click on the "open folder" icons on far left of the icons for pagamin query tool and open the drop_constraints script
     * the script is at C:\Users\Administrator\Desktop\DMS Workshop\awsDB2ToAuroraPostgres\scripts\drop_constraints.sql
 
-### Create DMS Source and Target Endpoints
+### Create DMS Resources
 
 * Create DMS Replication Instance following Steps from [Link](https://dms-immersionday.workshop.aws/en/sqlserver-aurora-postgres/data-migration/replication-instance/replication-instance.html)
 * Create DMS Source and Target Endpoints [Steps](https://dms-immersionday.workshop.aws/en/sqlserver-aurora-postgres/data-migration/endpoints/endpoints.html) steps but use these parameters for the source ![source parameters](README_PHOTOS/SourceDatabase.jpg)
