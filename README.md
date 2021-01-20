@@ -49,6 +49,7 @@ Use CloudFormation template from [Data Migration Immersion Day](https://dms-imme
 * [AWS SCT Schema Conversion Tool](https://aws.amazon.com/dms/schema-conversion-tool/)
 * [AWS Cloudformation](https://aws.amazon.com/cloudformation/)
 * [AWS DMS Workshop](https://dms-immersionday.workshop.aws/en)
+* [Amazon Kinesis](https://aws.amazon.com/kinesis)
 
 ## Technical Overview
 
