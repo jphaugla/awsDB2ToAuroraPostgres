@@ -163,6 +163,20 @@ Parameters:
       - m5.large
       - m5.xlarge
     ConstraintDescription: Must be a valid EC2 instance type. 
+  ReplicationInstance:
+    Default: dms.t3.medium
+    AllowedValues:
+      - dms.t2.micro
+      - dms.t2.small
+      - dms.t2.medium
+      - dms.t3.medium
+      - dms.t2.large
+      - dms.c4.large
+      - dms.c4.xlarge
+      - dms.c4.2xlarge
+      - dms.c4.4xlarge
+    Description: The instance type to use for the replication instance.
+    Type: String
   RDSInstanceType:
     Description: Amazon RDS Aurora Instance Type
     Type: String
@@ -179,6 +193,14 @@ Parameters:
       - db.r4.4xlarge
       - db.r4.8xlarge
     ConstraintDescription: Must be a valid Amazon RDS instance type.
+  CreateDMSComponents:
+    Description: If true, create the DMS instance, DMS endpoints, and the DMS task
+    Type: String
+    Default: true
+    AllowedValues:
+      - true
+      - false
+    ConstraintDescription: Must be a valid EC2 instance type. 
 
 Conditions: 
   Create-SQLServer-to-AuroraMySQL-Environment: !Equals [ !Ref LabType, 'Microsoft SQL Server to Amazon Aurora (MySQL)' ]
@@ -188,6 +210,7 @@ Conditions:
   Create-Oracle-to-AuroraPostgreSQL-Environment: !Equals [ !Ref LabType, 'Oracle to Amazon Aurora (PostgreSQL)' ]
   Create-Oracle-to-RDSOracle-Environment: !Equals [ !Ref LabType, 'Oracle to Amazon RDS Oracle' ]
   Create-Oracle-Environment: !Or [!Equals [ !Ref LabType, 'Oracle to Amazon Aurora (PostgreSQL)'], !Equals [ !Ref LabType, 'Oracle to Amazon RDS Oracle'] ]
+  Create-DMS-resources: !Equals [true, !Ref CreateDMSComponents]
 
 Resources:
   DmsVpc:
@@ -363,6 +386,7 @@ Resources:
         SubnetId: !Ref Subnet2
         GroupSet:
         - Ref: InstanceSecurityGroup
+
   InstanceSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -787,6 +811,103 @@ Resources:
                 Resource: !GetAtt
                   - testkinesisstream
                   - Arn
+
+  DMSReplicationSubnetGroup:
+    Condition: Create-DMS-resources
+    Type: 'AWS::DMS::ReplicationSubnetGroup'
+    Properties:
+      ReplicationSubnetGroupDescription: 'DMS replication subnet'
+      SubnetIds:
+      - Ref: Subnet1
+      - Ref: Subnet2
+      - Ref: Subnet3
+
+  DMSReplicationInstance:
+    Condition: Create-DMS-resources
+    Type: 'AWS::DMS::ReplicationInstance'
+    DependsOn:
+      - DMSCloudwatchRole
+      - DMSVpcRole
+    Properties:
+      AllocatedStorage: 100
+      AllowMajorVersionUpgrade: true
+      AutoMinorVersionUpgrade: true
+      MultiAZ: false
+      PubliclyAccessible: false
+      ReplicationInstanceClass: !Ref ReplicationInstance
+      VpcSecurityGroupIds:
+      - Fn::GetAtt:
+        - InstanceSecurityGroup
+        - GroupId
+
+  DMSAuroraEndpoint:
+    Condition: Create-DMS-resources
+    Type: 'AWS::DMS::Endpoint'
+    Properties:
+      EngineName: aurora-postgresql
+      EndpointType: target
+      Username: 'dbmaster'
+      Password: 'dbmaster123'
+      ServerName: !GetAtt
+        - AuroraPostgresqlCluster2
+        - Endpoint.Address
+      Port: 5432
+      DatabaseName: 'AuroraDB'
+    DependsOn:
+      - AuroraPostgresqlCluster2
+
+  DMSDB2Endpoint:
+    Condition: Create-DMS-resources
+    Type: 'AWS::DMS::Endpoint'
+    Properties:
+      EngineName: db2
+      EndpointType: source
+      Username: 'DB2INST2'
+      Password: 'dbmaster123'
+      ServerName: !GetAtt
+        - UEC2Instance
+        - PrivateDnsName
+      Port: 50000
+      DatabaseName: SAMPLE
+    DependsOn:
+      - UEC2Instance
+
+  DMSVpcRole:
+    Condition: Create-DMS-resources
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: dms-vpc-role
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - dms.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/service-role/AmazonDMSVPCManagementRole'
+      Path: /
+
+  DMSCloudwatchRole:
+    Condition: Create-DMS-resources
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: dms-cloudwatch-logs-role
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - dms.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/service-role/AmazonDMSCloudWatchLogsRole'
+      Path: /
+
 
 Outputs:
   SourceEC2PublicDNS:
