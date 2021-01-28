@@ -52,7 +52,7 @@ FILE                      = /opt/ibm/db2/V11.1
 ** Modify the value of the following LIC_AGREEMENT keyword to indicate that you
 ** have read and agreed to the license agreement file in the db2/license
 ** directory.
-LIC_AGREEMENT             = DECLINE         ** ACCEPT or DECLINE
+LIC_AGREEMENT             = ACCEPT         ** ACCEPT or DECLINE
 
 ** If an interactive type is set, db2setup will prompt for CD locations and
 ** give feedback as to progress, otherwise nothing will be displayed until the
@@ -435,7 +435,7 @@ DB2_INST.START_DURING_INSTALL = YES         ** YES or NO. Default is YES.
 
 ** Make sure the user name specified for FENCED_USERNAME is not locked and its
 ** password has not expired.
-DB2_INST.FENCED_USERNAME  = db2sdfe1        ** char(8)  no spaces, no upper case letters
+*DB2_INST.FENCED_USERNAME  = db2sdfe1        ** char(8)  no spaces, no upper case letters
 
 ** If no value is provided for FENCED_UID keyword, the DB2 installer will
 ** generate one for you. This is highly recommended.

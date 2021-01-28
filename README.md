@@ -58,7 +58,8 @@ Use CloudFormation template from [Data Migration Immersion Day](https://dms-imme
 
 * Bring up DMS/SCT environment using modified immersion days template
 * Review Security Group Settings
-* Setup VNC viewer on redhat instance.  VNC Viewer is needed for IBM DB2 installation
+* Setup VNC viewer on redhat instance.  VNC is needed for using IBM DB2 Setup Wizard
+* A db2 installation response file is available for a silent install to avoid need for VNC
 * Install DB2 and create sample DB2 database
 * Use SCT and DMS to convert sample DB2 database to Aurora PostgreSQL
 
@@ -102,7 +103,7 @@ Additional ports need to be open to allow VNC connectivity to the redhat 8 insta
     * Click "save rules"
 
 ### Setup VNC
-VNC is needed to do the IBM install on the redhat instance.  I have provided a response file in this github at [db2 install response file](https://github.com/jphaugla/awsDB2ToAuroraPostgres/blob/main/db2server.rsp)
+VNC is needed to do the IBM install on the redhat instance unless a silent install is chosen with the response file.  If using silent install, this section on VNC setup can be skipped.  I have provided a response file in this github at [db2 install response file](https://github.com/jphaugla/awsDB2ToAuroraPostgres/blob/main/db2server.rsp)
 This could eliminate the need for VNC.  Additionally, there is db2_install script which may work without VNC.  I have not verified either of these approaches so these instructions require VNC setup.
 
 To login from client to redhat instance
@@ -197,11 +198,12 @@ Jan 05 02:37:52 xxxxx.ec2.internal systemd[1]: Started Remote desktop service (V
 ### install prerequisite libraries
 ```bash
 sudo bash
-yum install libstdc++.i686
-yum install pam.i686
-yum install gcc-c++ cpp gcc kernel-devel make patch
+yum install -y libstdc++.i686
+yum install -y pam.i686
+yum install -y gcc-c++ cpp gcc kernel-devel make patch
+yum install -y libaio
 ```
-DB2 needs VNC to do the install.  There is also a silent option not needing vnc with a response file.  This may be best path forward.  THe response file is saved in the github
+DB2 needs VNC to do the install with the setup wizard.  There is also a silent option not needing vnc with a response file.  In the github home the response file is [db2response](https://github.com/jphaugla/awsDB2ToAuroraPostgres/blob/main/db2server.rsp)
 
 ### Download DB2
 
@@ -220,12 +222,38 @@ mkdir software
 chmod 777 software
 exit
 ```
-* Move the file to the /home/software and decompress the file using tar -xvzf 
-* rename directory so what was the server_t directory becomes ibm-db2
+* Move the downloaded db2 installation file to the /home/software and decompress the file using tar -xvzf 
+* rename directory so what was the server_t directory becomes ibm-db2 
+```bash
+sudo bash
+cd /home/softare
+tar -xvzf "tar file name"
+mv server_t ibm-db2
+```
 
 ### Install DB2
+There are two ways to do this.  Both methods use db2setup.  If VNC is setup use the setup wizard by starting db2setup with any parameters.  If VNC is not available, do a silent install using the provided db2 response file in the [github](https://github.com/jphaugla/awsDB2ToAuroraPostgres/blob/main/db2server.rsp)
 
 * Do a root based install using ./db2setup 
+* If VNC is available
+```bash
+sudo bash
+cd /home/software/ibm-db2/
+./db2setup
+```
+* if VNC is not available
+    * copy db2server.rsp file to redhat server
+```bash
+ssh -i "path to ssh key file" db2server.rsp ec2-user@"ip address for node":/home/software/ibm-db2
+```
+    * run db2setup with response file
+```bash
+sudo bash
+cd /home/software/ibm-db2/
+./db2setup -r db2server.rsp
+# must set a password for db2inst1 user
+passwd db2inst1
+```
 * db2 validation
 ```bash
 sudo bash
@@ -252,10 +280,12 @@ db2stop force
 db2 terminate
 /opt/ibm/db2/V11.1/instance/db2idrop db2inst1
 /opt/ibm/V11.1/install/db2_deinstall -a 
-# if you don't delete this user, db2 will create
+# if you don't delete this user, db2 will create db2inst2
+# if you don't remove the home directory, the files are left owned by previous UID causing problems
 userdel db2inst1
 userdel db2fenc1
 rm -rf /home/db2inst1
+rm -rf /home/dbfenc1
 rm -rf /opt/ibm/db2/V11.1
 ```
 
@@ -272,7 +302,7 @@ db2sampl
 
 ### Setup VNC for db2inst1
 
-This is a very optional step but handy for using VNC type tools with db2inst1
+This is a very optional step but handy for using VNC type tools with db2inst1.  Only do this if VNC was configured above
 
 * define port 2 for db2inst1
 ```bash
