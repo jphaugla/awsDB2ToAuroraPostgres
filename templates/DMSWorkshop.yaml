@@ -835,6 +835,7 @@ Resources:
       MultiAZ: false
       PubliclyAccessible: false
       ReplicationInstanceClass: !Ref ReplicationInstance
+      ReplicationSubnetGroupIdentifier: !Ref DMSReplicationSubnetGroup
       VpcSecurityGroupIds:
       - Fn::GetAtt:
         - InstanceSecurityGroup
