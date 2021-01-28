@@ -19,6 +19,8 @@ Demo converting DB2 database to postgresql using DB2 on an EC2 instance with SCT
   - [Setup VNC](#setup-vnc)
   - [Troubleshoot VNC](#troubleshoot-vnc)
 - [DB2 Setup](#db2-setup)
+  - [Install Pre-requisite Libraries](#install-prerequisite-libraries)
+  - [Download DB2](#download-db2)
   - [Install DB2](#install-db2)
   - [Troubleshoot DB2 install](#troubleshoot-vnc)
   - [DB2 sample database](#db2-sample-database)
@@ -32,7 +34,8 @@ Demo converting DB2 database to postgresql using DB2 on an EC2 instance with SCT
 - [DB2 with DMS](#db2-with-dms)
   - [DB2 Replication](#db2-replication)
   - [DB2 Drop Foreign Keys](#db2-drop-foreign-keys)
-  - [Create DMS Resources](#create-dms-resources)
+- [Create DMS Resources](#create-dms-resources)
+   
 - [Cleaning up](#cleaning-up)
   
 
@@ -191,20 +194,24 @@ Jan 05 02:37:52 xxxxx.ec2.internal systemd[1]: Started Remote desktop service (V
 
 ## DB2 Setup
 
-### Install DB2
-
-DB2 needs VNC to do the install.  There is also a silent option not needing vnc with a response file.  This may be best path forward.  THe response file is saved in the github
-
-* Using the VNC connection to the IBM server, go to download page for DB2 software [DB2 software](https://www.ibm.com/support/pages/download-db2-fix-packs-version-db2-linux-unix-and-windows)
-* Scroll down to "DB2 Fix Packs" button and fill out IBMID information (it is free) 
-* Some errors on missing 32bit libraries will be generated but IBM says to ignore those error.  Easiest to install them ahead of time!
+### install prerequisite libraries
 ```bash
 sudo bash
 yum install libstdc++.i686
 yum install pam.i686
 yum install gcc-c++ cpp gcc kernel-devel make patch
 ```
-* Click on the version you want.  At the time of this writing, db2 11.1 fixpack 5 is most recent version supported by AWS DBS 
+DB2 needs VNC to do the install.  There is also a silent option not needing vnc with a response file.  This may be best path forward.  THe response file is saved in the github
+
+### Download DB2
+
+* NOTE:  At the time, db2 11.1 fixpack 5 is most recent version supported by AWS DBS 
+* Using the VNC connection to the IBM server, go to download page for DB2 software [DB2 software](https://www.ibm.com/support/pages/download-db2-fix-packs-version-db2-linux-unix-and-windows)
+    * an IBMID will be needed for this (it is free)
+* Scroll down to "DB2 Fix Packs" button and click on the version ![DB2 download start](README_PHOTOS/FindDB2Download.jpg)   
+* Scroll down and click the download link for ![DB2 Server Fix Pack](README_PHOTOS/DownloadDb2Software.jpg)
+* Scroll down on this page to find the ![linux 64 bit server version](README_PHOTOS/PickLinux64bit.jpg)   
+* Download the file.  This is the name of the file:  v11.1.4fp5_linuxx64_server_t.tar.gz 
 * create holding file for DB2 Software (not necessary but makes later documentation easier)
 ```bash
 sudo bash
@@ -213,8 +220,11 @@ mkdir software
 chmod 777 software
 exit
 ```
-* Download using Linux (x64), move the file to the /home/software and decompress the file using tar -xvzf 
-* rename directory so what was the server_dec directory becomes ibm-db2
+* Move the file to the /home/software and decompress the file using tar -xvzf 
+* rename directory so what was the server_t directory becomes ibm-db2
+
+### Install DB2
+
 * Do a root based install using ./db2setup 
 * db2 validation
 ```bash
@@ -226,9 +236,32 @@ db2val
 ### Troubleshoot DB2 install
 * this IBM link [IBM troubleshoot](https://www.ibm.com/support/knowledgecenter/en/SS4KMC_2.5.0/com.ibm.ico.doc_2.5/c_ts_installation.html) is helpful.  Odd that it says to ignore the 32 bit libraries.
 * here are some maybe overly complex install instructions [complex install instructions](https://www.ibm.com/support/producthub/db2/docs/content/SSEPGG_11.5.0/com.ibm.db2.luw.qb.server.doc/doc/t0008875.html)
+* the DB2 install is hard to fix if there is a mistake.  It is easier to re-install
+* To re-install DB2, make sure everything is deleted.  These [delete steps](https://www.ibm.com/support/knowledgecenter/SSEPGG_11.5.0/com.ibm.db2.luw.qb.server.doc/doc/t0007439.html) help but are not complete.
+
+```bash
+sudo bash
+su - db2inst1
+db2 drop database sample
+exit
+#  now back as root
+# get DB2 scripts in the profile
+. /home/db2inst1/sqllib/db2profile
+cd /opt/ibm/db2/V11.1
+db2stop force
+db2 terminate
+/opt/ibm/db2/V11.1/instance/db2idrop db2inst1
+/opt/ibm/V11.1/install/db2_deinstall -a 
+# if you don't delete this user, db2 will create
+userdel db2inst1
+userdel db2fenc1
+rm -rf /home/db2inst1
+rm -rf /opt/ibm/db2/V11.1
+```
 
 ### DB2 sample database
 * create sample database.  For more information look at documentation sample database [db2sampl](https://www.ibm.com/support/knowledgecenter/SSEPGG_11.5.0/com.ibm.db2.luw.admin.cmd.doc/doc/r0001934.html)
+
 ```bash
 sudo bash
 su - db2inst1
@@ -236,6 +269,7 @@ db2sampl
 ```
 
 * get familiar with DB2 and sample database using this [document](https://www.tutorialspoint.com/db2/db2_quick_guide.htm)  The install directions are dated but the rest is very good. Be careful what steps you run as some of these commands are "impactful"
+
 ### Setup VNC for db2inst1
 
 This is a very optional step but handy for using VNC type tools with db2inst1
@@ -253,7 +287,9 @@ Password:
 Verify:
 Would you like to enter a view-only password (y/n)? n
 ```
+
 * start and enable tigervnc second session
+
 ```bash
 sudo systemctl start vncserver@:2
 sudo systemctl enable vncserver@:2
@@ -272,23 +308,27 @@ sudo systemctl set-default graphical
 * find "Install Data Server Client".  follow prompts to install
 
 ### Install IBM Data Studio
+
 * On Windows machine, download IBM Data Studio client software [Download Data Studio](https://mrs-ux.mrs-prod-7d4bdc08e7ddc90fa89b373d95c240eb-0000.us-south.containers.appdomain.cloud/marketing/iwm/platform/mrs/assets/DownloadList?source=swg-idside&lang=en_US)
 * Click on download link for Windows
 * After download completes, expand the zip file
-* Within the ibm_ds4130_win foldor, Double-click the launchpad.exe and follow the prompts to install
+* Within the ibm_ds4130_win folder, Double-click the launchpad.exe and follow the prompts to install
 
 ### Install git
+
 Git is needed to pull this repository onto the windows machine.  The repository has some needed scripts.
 * Got to the [git download](https://git-scm.com/) 
 * Download the latest git release for windows
 * Double-click on the git exe file and follow the prompts to install
 * clone the git project using a windows DOC command line
+
 ```bash
 cd "Desktop\DMS Workshop"
 git clone https://github.com/jphaugla/awsDB2ToAuroraPostgres.git
 ```
 
 ### SCT
+
 Return back to the DMS and SCT steps using the SQL Server to Amazon Aurora PostgreSQL
 
 * Start back at this point in the [guide](https://dms-immersionday.workshop.aws/en/sqlserver-aurora-postgres.html)
@@ -306,11 +346,13 @@ Return back to the DMS and SCT steps using the SQL Server to Amazon Aurora Postg
 * Can see the tables now in the target database.  Use the pg4admin tool to verify the new schema exists but is not populated.
 
 ### Troubleshooting Windows
+
 * if can't connect through ports
     * Disable Windows Defender [Disable Defender](https://support.microsoft.com/en-us/windows/turn-microsoft-defender-firewall-on-or-off-ec0844f7-aebd-0583-67fe-601ecf5d774f)
     * Restart the windows machine (yep, it is not 1995 but restarting a windows machine never hurts!)
  
 ## DB2 with DMS
+
 Several links for background on changes needed for DB2 setup with DMS
 
 * Link for using IBM DB2 as a source for DMS [DB2 DMS](https://docs.aws.amazon.com/dms/latest/userguide/CHAP_Source.DB2.html) 
@@ -319,6 +361,7 @@ Several links for background on changes needed for DB2 setup with DMS
 * NOTE:  LOGARCHMETH1 and LOGARCHMETH2 are for newer versions of DB2.  Older versions use LOGRETAIN
 
 ### DB2 Replication
+
 Choose most comfortable method for making the configuration parameter.  Following steps are using a command line unix connection
 
 * Turn on replication from unix connection to the redhat Db2 instance
@@ -347,23 +390,35 @@ This is very similar to the immersion day Configure the Target DataBase step [Co
 * click on the "open folder" icons on far left of the icons for pagamin query tool and open the drop_constraints script
     * the script is at C:\Users\Administrator\Desktop\DMS Workshop\awsDB2ToAuroraPostgres\scripts\drop_constraints.sql
 
-### Create DMS Resources
+## Create DMS Resources
 
 Some choices here.  In addition can add a separate Migration Task for using the same DB2 source tables but the target endpoint is Kinesis.  In this scenario, there are no mapping rules but a separate Kinesis stream is needed for each table.  The streams are defined in the cloud formation template as well.
 
-* Create DMS Replication Instance following Steps from [immersion training](https://dms-immersionday.workshop.aws/en/sqlserver-aurora-postgres/data-migration/replication-instance/replication-instance.html)
-* Create DMS Source and Target Endpoints [Steps](https://dms-immersionday.workshop.aws/en/sqlserver-aurora-postgres/data-migration/endpoints/endpoints.html) steps but use these parameters for the source ![source parameters](README_PHOTOS/SourceDatabase.jpg)
-* Create a [DMS Replication Task](https://dms-immersionday.workshop.aws/en/sqlserver-aurora-postgres/data-migration/migration-task/migration-task.html)
-    * add a selection rule where schema name is like "DB2INS%"
-    * DB2 uses upper case schema, table, and column names so these must all be converted in mapping rules
-        * add 3 separate mapping rules for columns, tables and schema
+### Create DMS Replication Instance 
+
+* Follow steps from [immersion training](https://dms-immersionday.workshop.aws/en/sqlserver-aurora-postgres/data-migration/replication-instance/replication-instance.html)
+
+### Create DMS Endpoints 
+
+* Follow these [Steps](https://dms-immersionday.workshop.aws/en/sqlserver-aurora-postgres/data-migration/endpoints/endpoints.html) 
+* Use these parameters for the source ![source parameters](README_PHOTOS/SourceDatabase.jpg)
+* THe specific PostgreSQL endpoints, KinesisEndpoints and TargetKinesis roles are output in the cloudformation
+
+### Create a [DMS Replication Task](https://dms-immersionday.workshop.aws/en/sqlserver-aurora-postgres/data-migration/migration-task/migration-task.html)
+
+* add a selection rule where schema name is like "DB2INS%"
+* DB2 uses upper case schema, table, and column names so these must all be converted in mapping rules
+* add 3 separate mapping rules for columns, tables and schema
+
 ```bash
 where schema name is like '%' and table name is like '%', convert-lowercase
 where schema name is like '%' and table name is like '%', convert-lowercase
 where schema name is like '%'  convert-lowercase
 ```
+
 * Still not getting any DB2 table with a clob to successfully transfer-have not debugged that at this time
-    * This is the error if 11.5 is used
+* This is the error if 11.5 is used
+
 ```bash
 2021-01-08T01:36:14 [TASK_MANAGER ]E: No tables were found at task initialization. Either the selected table(s) no longer exist or no match was found for the table selection pattern(s). [1021707] (replicationtask.c:2107)
 ```
