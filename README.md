@@ -441,11 +441,15 @@ If the parameter "CreateDMSComponents" in the initial Cloudformation template wa
 * add a selection rule where schema name is like "DB2INS%"
 * DB2 uses upper case schema, table, and column names so these must all be converted in mapping rules
 * add 3 separate mapping rules for columns, tables and schema
-
+* using the wizard you need this.  (instead can put JSON in directly-down below)
 ```bash
 where schema name is like '%' and table name is like '%' and column name is like "%", convert-lowercase
 where schema name is like '%' and table name is like '%', convert-lowercase
 where schema name is like '%'  convert-lowercase
+```
+* JSON to use directly
+```bash
+{"rules":[{"rule-type":"transformation","rule-id":"1","rule-name":"1","rule-target":"column","object-locator":{"schema-name":"%","table-name":"%","column-name":"%"},"rule-action":"convert-lowercase","value":null,"old-value":null},{"rule-type":"transformation","rule-id":"2","rule-name":"2","rule-target":"table","object-locator":{"schema-name":"%","table-name":"%"},"rule-action":"convert-lowercase","value":null,"old-value":null},{"rule-type":"transformation","rule-id":"3","rule-name":"3","rule-target":"schema","object-locator":{"schema-name":"%"},"rule-action":"convert-lowercase","value":null,"old-value":null},{"rule-type":"selection","rule-id":"4","rule-name":"4","object-locator":{"schema-name":"DB2INST%","table-name":"%"},"rule-action":"include","filters":[]}]}
 ```
 
 * Still not getting any DB2 table with a clob to successfully transfer-have not debugged that at this time
