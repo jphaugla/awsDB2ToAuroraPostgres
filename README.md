@@ -62,6 +62,7 @@ Use CloudFormation template from [Data Migration Immersion Day](https://dms-imme
 * A db2 installation response file is available for a silent install to avoid need for VNC
 * Install DB2 and create sample DB2 database
 * Use SCT and DMS to convert sample DB2 database to Aurora PostgreSQL
+* Additional DMS setup to use kinesis 
 
 &nbsp;
 
@@ -436,7 +437,7 @@ If the parameter "CreateDMSComponents" in the initial Cloudformation template wa
 * Use these parameters for the source ![source parameters](README_PHOTOS/SourceDatabase.jpg)
 * THe specific PostgreSQL endpoints, KinesisEndpoints and TargetKinesis roles are output in the cloudformation
 
-### Create a [DMS Migration Task](https://dms-immersionday.workshop.aws/en/sqlserver-aurora-postgres/data-migration/migration-task/migration-task.html)
+### Create a IBM to Aurora Task [DMS Migration Task](https://dms-immersionday.workshop.aws/en/sqlserver-aurora-postgres/data-migration/migration-task/migration-task.html)
 
 * add a selection rule where schema name is like "DB2INS%"
 * DB2 uses upper case schema, table, and column names so these must all be converted in mapping rules
@@ -459,6 +460,24 @@ where schema name is like '%'  convert-lowercase
 2021-01-08T01:36:14 [TASK_MANAGER ]E: No tables were found at task initialization. Either the selected table(s) no longer exist or no match was found for the table selection pattern(s). [1021707] (replicationtask.c:2107)
 ```
 
+### Create a IBM to Kinesis Task
+* Add a kinesis Stream with a shard for each table planning to be moved to kinesis
+* Add a kinesis endpoint with these settings:
+    * MessageFormat: json
+    * ServiceAccessRoleArn "Kinesis Role ARN"  see [this link for role requirements](https://docs.aws.amazon.com/dms/latest/userguide/CHAP_Target.Kinesis.html#CHAP_Target.Kinesis.Prerequisites)
+    * StreamArn: use kinesis stream ARN from above
+    * Could not get this to work on the cloudformation but add these two parameters
+        * IncludePartitionValue: true
+        * PartitionIncludeSchemaTable: true
+* Create DMS Migration Task
+    * SourceEndpoint is DMSDB2Endpoint
+    * TargetEndpoint is DMSKinesisEndpoint
+    * JSON mapping string
+```bash
+{"rules":[{"rule-type":"selection","rule-id":"1","rule-name":"1","object-locator":{"schema-name":"DB2INST%","table-name":"EMPLOYEE"},"rule-action":"include","filters":[]},{"rule-type":"selection","rule-id":"2","rule-action":"include","object-locator":{"schema-name":"DB2INST%","table-name":"DEPARTMENT"},"rule-name":"2"}]}
+```
+    
+    
 ### Cleaning up
 
 Remove all files from S3 to avoid accruing unnecessary charges

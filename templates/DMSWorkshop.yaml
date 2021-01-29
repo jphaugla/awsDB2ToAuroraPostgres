@@ -779,11 +779,13 @@ Resources:
         - "-"
         - - Ref: AWS::StackName
           - TargetOracleDB
+            
   testkinesisstream:
     Type: 'AWS::Kinesis::Stream'
     Properties:
       Name: testkinesisstream
-      ShardCount: 1
+      ShardCount: 2
+
       
   DMSExecutionRole:
     Type: 'AWS::IAM::Role'
@@ -871,6 +873,9 @@ Resources:
          StreamArn: !GetAtt
             - testkinesisstream
             - Arn 
+         #  these did not work so commented out
+         # IncludePartitionValue: true
+         # PartitionIncludeSchemaTable: true
 
     DependsOn:
       - testkinesisstream
@@ -951,10 +956,7 @@ Resources:
       ReplicationInstanceArn: !Ref DMSReplicationInstance
       SourceEndpointArn: !Ref DMSDB2Endpoint
       TableMappings: >-
-        {"rules": [{"rule-type": "selection", "rule-id": "1", "rule-action":
-        "include", "object-locator": {"schema-name": "DB2INST%"},
-        "rule-name": "1"}
-        ]}
+        {"rules":[{"rule-type":"selection","rule-id":"1","rule-name":"1","object-locator":{"schema-name":"DB2INST%","table-name":"EMPLOYEE"},"rule-action":"include","filters":[]},{"rule-type":"selection","rule-id":"2","rule-action":"include","object-locator":{"schema-name":"DB2INST%","table-name":"DEPARTMENT"},"rule-name":"2"}]}
       TargetEndpointArn: !Ref DMSKinesisEndpoint
     DependsOn:
       - DMSKinesisEndpoint
