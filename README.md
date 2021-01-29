@@ -366,6 +366,7 @@ Return back to the DMS and SCT steps using the SQL Server to Amazon Aurora Postg
 * Restart the Windows Server (this seems to be important after the SCT install)
 * Create a New Project using New Project Wizard ![Create Project](README_PHOTOS/DefineProject.jpg)
 * Connect to DB2 ![Connect to DB2](README_PHOTOS/ConnectToDB2.jpg)
+    * if requested for the db2 LUW driver point at db2jcc4.jar file (usually there are several of them after installing the drivers and the client drivers)
 * Accept the risks
 * Click on the "DB2INST1" instance on the left panel and click "Next" to generate the assessment report
 * Click Next and enter parameters for Aurora PostgreSQL connection ![Aurora Connection](README_PHOTOS/SCTAuroraConnection.jpg)
@@ -429,19 +430,20 @@ Some choices here.  In addition can add a separate Migration Task for using the 
 * Follow steps from [immersion training](https://dms-immersionday.workshop.aws/en/sqlserver-aurora-postgres/data-migration/replication-instance/replication-instance.html)
 
 ### Create DMS Endpoints 
+If the parameter "CreateDMSComponents" in the initial Cloudformation template was set to true, these components will already be created and need validation.
 
 * Follow these [Steps](https://dms-immersionday.workshop.aws/en/sqlserver-aurora-postgres/data-migration/endpoints/endpoints.html) 
 * Use these parameters for the source ![source parameters](README_PHOTOS/SourceDatabase.jpg)
 * THe specific PostgreSQL endpoints, KinesisEndpoints and TargetKinesis roles are output in the cloudformation
 
-### Create a [DMS Replication Task](https://dms-immersionday.workshop.aws/en/sqlserver-aurora-postgres/data-migration/migration-task/migration-task.html)
+### Create a [DMS Migration Task](https://dms-immersionday.workshop.aws/en/sqlserver-aurora-postgres/data-migration/migration-task/migration-task.html)
 
 * add a selection rule where schema name is like "DB2INS%"
 * DB2 uses upper case schema, table, and column names so these must all be converted in mapping rules
 * add 3 separate mapping rules for columns, tables and schema
 
 ```bash
-where schema name is like '%' and table name is like '%', convert-lowercase
+where schema name is like '%' and table name is like '%' and column name is like "%", convert-lowercase
 where schema name is like '%' and table name is like '%', convert-lowercase
 where schema name is like '%'  convert-lowercase
 ```

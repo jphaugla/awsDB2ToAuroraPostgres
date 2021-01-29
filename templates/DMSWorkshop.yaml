@@ -857,14 +857,33 @@ Resources:
     DependsOn:
       - AuroraPostgresqlCluster2
 
+  DMSKinesisEndpoint:
+    Condition: Create-DMS-resources
+    Type: 'AWS::DMS::Endpoint'
+    Properties:
+      EngineName: kinesis
+      EndpointType: target
+      KinesisSettings: 
+         MessageFormat: json
+         ServiceAccessRoleArn: !GetAtt
+            - DMSExecutionRole
+            - Arn
+         StreamArn: !GetAtt
+            - testkinesisstream
+            - Arn 
+
+    DependsOn:
+      - testkinesisstream
+      - DMSExecutionRole
+
   DMSDB2Endpoint:
     Condition: Create-DMS-resources
     Type: 'AWS::DMS::Endpoint'
     Properties:
       EngineName: db2
       EndpointType: source
-      Username: 'DB2INST2'
-      Password: 'dbmaster123'
+      Username: 'DB2INST1'
+      Password: 'jasonrocks'
       ServerName: !GetAtt
         - UEC2Instance
         - PrivateDnsName
@@ -908,7 +927,52 @@ Resources:
       ManagedPolicyArns:
         - 'arn:aws:iam::aws:policy/service-role/AmazonDMSCloudWatchLogsRole'
       Path: /
+      
+  DMSTaskMigrationAurora:
+    Condition: Create-DMS-resources
+    Type: 'AWS::DMS::ReplicationTask'
+    Properties:
+      MigrationType: full-load-and-cdc
+      ReplicationInstanceArn: !Ref DMSReplicationInstance
+      SourceEndpointArn: !Ref DMSDB2Endpoint
+      TableMappings: >-
+        {"rules": [{"rule-type": "selection", "rule-id": "1", "rule-action":
+        "include", "object-locator": {"schema-name": "DB2INST%"},
+        "rule-name": "1"},
+         {"rule-type": "transformation", "rule-id": "2", "rule-target":"table",
+         "object-locator": {"schema-name": "%","table-name": "%"},
+        "rule-name": "2", "rule-action": "convert-lowercase"},
+         {"rule-type": "transformation", "rule-id": "3", "rule-target":"column",
+         "object-locator": {"schema-name": "%","table-name": "%"
+         ,"column-name": "%"}, "rule-name": "3", 
+         "rule-action": "convert-lowercase"},
+         {"rule-type": "transformation", "rule-id": "4", "rule-target":"schema",
+         "object-locator": {"schema-name": "%"},
+        "rule-name": "4", "rule-action": "convert-lowercase"}
+        ]}
+      TargetEndpointArn: !Ref DMSAuroraEndpoint
+    DependsOn:
+      - DMSAuroraEndpoint
+      - DMSDB2Endpoint
+      - DMSReplicationInstance
 
+  DMSTaskMigrationKinesis:
+    Condition: Create-DMS-resources
+    Type: 'AWS::DMS::ReplicationTask'
+    Properties:
+      MigrationType: full-load-and-cdc
+      ReplicationInstanceArn: !Ref DMSReplicationInstance
+      SourceEndpointArn: !Ref DMSDB2Endpoint
+      TableMappings: >-
+        {"rules": [{"rule-type": "selection", "rule-id": "1", "rule-action":
+        "include", "object-locator": {"schema-name": "DB2INST%"},
+        "rule-name": "1"}
+        ]}
+      TargetEndpointArn: !Ref DMSKinesisEndpoint
+    DependsOn:
+      - DMSKinesisEndpoint
+      - DMSDB2Endpoint
+      - DMSReplicationInstance
 
 Outputs:
   SourceEC2PublicDNS:
