@@ -22,7 +22,7 @@ Demo converting DB2 database to postgresql using DB2 on an EC2 instance with SCT
   - [Install Pre-requisite Libraries](#install-prerequisite-libraries)
   - [Download DB2](#download-db2)
   - [Install DB2](#install-db2)
-  - [Troubleshoot DB2 install](#troubleshoot-vnc)
+  - [Troubleshoot DB2 install](#troubleshoot-db2-install)
   - [DB2 sample database](#db2-sample-database)
   - [Setup VNC for db2inst1](#setup-vnc-for-db2inst1)
 - [Windows Steps](#windows-steps)
@@ -263,14 +263,20 @@ db2val
 ```
 
 ### Troubleshoot DB2 install
+Obviously, skip this if everything is fine.  These are steps in case of problems.  If going well skip forward to [DB2 Sample Database](#db2-sample-database)
 * this IBM link [IBM troubleshoot](https://www.ibm.com/support/knowledgecenter/en/SS4KMC_2.5.0/com.ibm.ico.doc_2.5/c_ts_installation.html) is helpful.  Odd that it says to ignore the 32 bit libraries.
 * here are some maybe overly complex install instructions [complex install instructions](https://www.ibm.com/support/producthub/db2/docs/content/SSEPGG_11.5.0/com.ibm.db2.luw.qb.server.doc/doc/t0008875.html)
 * the DB2 install is hard to fix if there is a mistake.  It is easier to re-install
 * To re-install DB2, make sure everything is deleted.  These [delete steps](https://www.ibm.com/support/knowledgecenter/SSEPGG_11.5.0/com.ibm.db2.luw.qb.server.doc/doc/t0007439.html) help but are not complete.
 
+#### These are steps to delete DB2-THIS WILL REMOVE YOUR DB2!!!
 ```bash
 sudo bash
 su - db2inst1
+# not all these steps may be needed but without drop can fail with sql1035N
+db2 connect to sample
+db2 unquiesce db
+db2 connect reset
 db2 drop database sample
 exit
 #  now back as root
@@ -280,11 +286,16 @@ cd /opt/ibm/db2/V11.1
 db2stop force
 db2 terminate
 /opt/ibm/db2/V11.1/instance/db2idrop db2inst1
-/opt/ibm/V11.1/install/db2_deinstall -a 
+/opt/ibm/db2/V11.1/install/db2_deinstall -a 
 # if you don't delete this user, db2 will create db2inst2
 # if you don't remove the home directory, the files are left owned by previous UID causing problems
+# this will fail if any processes are running like vnc for db2inst1
+# to make sure, stop db2inst1 vncserver is running
+systemctl stop vncserver@:2
 userdel db2inst1
 userdel db2fenc1
+# check for any other db2 users and delete if found
+grep db2 /etc/passwd
 rm -rf /home/db2inst1
 rm -rf /home/dbfenc1
 rm -rf /opt/ibm/db2/V11.1
