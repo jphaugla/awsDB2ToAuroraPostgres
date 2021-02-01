@@ -43,8 +43,7 @@ Demo converting DB2 database to postgresql using DB2 on an EC2 instance with SCT
 
 ## Overview
 
-Use CloudFormation template from [Data Migration Immersion Day](https://dms-immersionday.workshop.aws/en).
-  Add an IBM DB2 instance and demo using SCT/DMS to convert DB2 sample database to Aurora PostgreSQL.
+Initially used a CloudFormation template from [Data Migration Immersion Day](https://dms-immersionday.workshop.aws/en).  This template has been modified to include an IBM DB2 instance with DMS components.   This readme documents using SCT/DMS to convert DB2 sample database to Aurora PostgreSQL.
 
 ## AWS Services Used
 
@@ -85,7 +84,7 @@ I successfully used DB2 11.1 FixPack 5 for this exercise.  I am unclear on usage
 * Start with [AWS Account instructions](https://dms-immersionday.workshop.aws/en/envconfig/regular.html)
 * After reviewing  "Introduction" and "Getting Started", follow the Regular AWS Account instructions. ![Regular AWS Account](README_PHOTOS/InitialNavigation.jpg)
 * Complete the "Login to the AWS Console" and "Create an EC2 Key Pair" steps
-* In the "Configure the Environment" step, use the provided ./templates/DMSWorkshop.yaml file instead of the link.  Choose SQL Server for the source database
+* In the "Configure the Environment" step, use the provided ./templates/DB2Workshop.yaml file instead of the link.  Choose SQL Server for the source database
 
 ### Edit Security Group Settings
 Additional ports need to be open to allow VNC connectivity to the redhat 8 instance to install DB2.  Additionally, using additional agents for DMS, can require additional ports to be open
@@ -243,7 +242,7 @@ cd /home/software/ibm-db2/
 ./db2setup
 ```
 * if VNC is not available
-    * copy db2server.rsp file to redhat server
+    * copy db2server.rsp file to redhat server from the githbu
 ```bash
 ssh -i "path to ssh key file" db2server.rsp ec2-user@"ip address for node":/home/software/ibm-db2
 ```
@@ -434,21 +433,23 @@ This is very similar to the immersion day Configure the Target DataBase step [Co
     * the script is at C:\Users\Administrator\Desktop\DMS Workshop\awsDB2ToAuroraPostgres\scripts\drop_constraints.sql
 
 ## Create DMS Resources
+These resources are automatically created if the flag is set in the script but the task must be started manually
 
-Some choices here.  In addition can add a separate Migration Task for using the same DB2 source tables but the target endpoint is Kinesis.  In this scenario, there are no mapping rules but a separate Kinesis stream is needed for each table.  The streams are defined in the cloud formation template as well.
+Some choices here.  In addition, can add a separate Migration Task using the same DB2 source tables but with a target Kinesis endpoint.  In this scenario, there are no mapping rules but a separate Kinesis stream is needed for each table.  The streams are defined in the cloud formation template as well.
 
 ### Create DMS Replication Instance 
 
 * Follow steps from [immersion training](https://dms-immersionday.workshop.aws/en/sqlserver-aurora-postgres/data-migration/replication-instance/replication-instance.html)
 
 ### Create DMS Endpoints 
-If the parameter "CreateDMSComponents" in the initial Cloudformation template was set to true, these components will already be created and need validation.
+If the parameter "CreateDMSComponents" in the initial Cloudformation template was set to true, these components will already be created and need validation.  Test the source DB2 endpoint.  Verify aurora and kinesis endpoint tests was successful.
 
 * Follow these [Steps](https://dms-immersionday.workshop.aws/en/sqlserver-aurora-postgres/data-migration/endpoints/endpoints.html) 
 * Use these parameters for the source ![source parameters](README_PHOTOS/SourceDatabase.jpg)
 * THe specific PostgreSQL endpoints, KinesisEndpoints and TargetKinesis roles are output in the cloudformation
 
 ### Create a IBM to Aurora Task [DMS Migration Task](https://dms-immersionday.workshop.aws/en/sqlserver-aurora-postgres/data-migration/migration-task/migration-task.html)
+If the parameter "CreateDMSComponents" in the initial Cloudformation template was set to true, the Task will already be created.  Just start it.
 
 * add a selection rule where schema name is like "DB2INS%"
 * DB2 uses upper case schema, table, and column names so these must all be converted in mapping rules
@@ -464,7 +465,7 @@ where schema name is like '%'  convert-lowercase
 {"rules":[{"rule-type":"transformation","rule-id":"1","rule-name":"1","rule-target":"column","object-locator":{"schema-name":"%","table-name":"%","column-name":"%"},"rule-action":"convert-lowercase","value":null,"old-value":null},{"rule-type":"transformation","rule-id":"2","rule-name":"2","rule-target":"table","object-locator":{"schema-name":"%","table-name":"%"},"rule-action":"convert-lowercase","value":null,"old-value":null},{"rule-type":"transformation","rule-id":"3","rule-name":"3","rule-target":"schema","object-locator":{"schema-name":"%"},"rule-action":"convert-lowercase","value":null,"old-value":null},{"rule-type":"selection","rule-id":"4","rule-name":"4","object-locator":{"schema-name":"DB2INST%","table-name":"%"},"rule-action":"include","filters":[]}]}
 ```
 
-* Still not getting any DB2 table with a clob to successfully transfer-have not debugged that at this time
+* Upgrading to current verson of DMS
 * This is the error if 11.5 is used
 
 ```bash
