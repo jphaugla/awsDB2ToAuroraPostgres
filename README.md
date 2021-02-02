@@ -35,7 +35,10 @@ Demo converting DB2 database to postgresql using DB2 on an EC2 instance with SCT
   - [DB2 Replication](#db2-replication)
   - [DB2 Drop Foreign Keys](#db2-drop-foreign-keys)
 - [Create DMS Resources](#create-dms-resources)
-   
+  - [Create DMS Replication Instance](#create-dms-replication-instance)   
+  - [Create DMS Endpoints](#create-dms-endpoints)
+  - [Create IBM to Aurora Task](#create-ibm-to-aurora-task)
+  - [Create IBM to Kinesis Task](#create-ibm-to-kinesis-task)
 - [Cleaning up](#cleaning-up)
   
 
@@ -448,7 +451,8 @@ If the parameter "CreateDMSComponents" in the initial Cloudformation template wa
 * Use these parameters for the source ![source parameters](README_PHOTOS/SourceDatabase.jpg)
 * THe specific PostgreSQL endpoints, KinesisEndpoints and TargetKinesis roles are output in the cloudformation
 
-### Create a IBM to Aurora Task [DMS Migration Task](https://dms-immersionday.workshop.aws/en/sqlserver-aurora-postgres/data-migration/migration-task/migration-task.html)
+### Create IBM to Aurora Task 
+Similar to this create [DMS Migration Task](https://dms-immersionday.workshop.aws/en/sqlserver-aurora-postgres/data-migration/migration-task/migration-task.html)
 If the parameter "CreateDMSComponents" in the initial Cloudformation template was set to true, the Task will already be created.  Just start it.
 
 * add a selection rule where schema name is like "DB2INS%"
@@ -472,7 +476,7 @@ where schema name is like '%'  convert-lowercase
 2021-01-08T01:36:14 [TASK_MANAGER ]E: No tables were found at task initialization. Either the selected table(s) no longer exist or no match was found for the table selection pattern(s). [1021707] (replicationtask.c:2107)
 ```
 
-### Create a IBM to Kinesis Task
+### Create IBM to Kinesis Task
 * Add a kinesis Stream with a shard for each table planning to be moved to kinesis
 * Add a kinesis endpoint with these settings:
     * MessageFormat: json

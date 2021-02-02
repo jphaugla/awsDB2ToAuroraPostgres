@@ -461,7 +461,7 @@ Resources:
         - RDSSecurityGroup
         - GroupId
       Engine: aurora-postgresql
-      EngineVersion: '11.7'
+      EngineVersion: '11.9'
       DatabaseName: 'AuroraDB'
       DBClusterParameterGroupName: default.aurora-postgresql11
       MasterUsername: 'dbmaster'
@@ -503,7 +503,7 @@ Resources:
         - - Ref: AWS::StackName
           - AuroraPostgreSQLInstance
       Engine: aurora-postgresql
-      EngineVersion: '11.7'
+      EngineVersion: '11.9'
       DBParameterGroupName:
         Ref: AuroraPostgresqlParameterGroup
       DBClusterIdentifier:
@@ -617,6 +617,7 @@ Resources:
       AllocatedStorage: 100
       AllowMajorVersionUpgrade: true
       AutoMinorVersionUpgrade: true
+      EngineVersion: 3.4.3
       MultiAZ: false
       PubliclyAccessible: false
       ReplicationInstanceClass: !Ref ReplicationInstance
